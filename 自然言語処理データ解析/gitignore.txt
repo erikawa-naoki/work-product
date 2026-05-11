@@ -1,0 +1,12 @@
+venv/
+*.Identifier
+src/data/*
+src/result/*
+
+# python bytecode
+__pycache__/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+
