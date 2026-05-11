@@ -1,6 +1,10 @@
-#Qiskitローカル導入
+
+# Qiskitローカル導入
+
 QiskitをGoogle colabで実行するのが手間な場合ローカルに導入することをおすすめします．
-##方法1（Windows, Anaconda）
+
+## 方法1（Windows, Anaconda）
+
 1. Anacondaをインストール
 Get Startedからやってください．
 2. Anacondaを起動，環境作成
