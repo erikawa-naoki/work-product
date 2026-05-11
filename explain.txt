@@ -1,0 +1,163 @@
+文書カテゴリ分類（LSTM）README
+
+このプロジェクトは、日本語テキスト（例：livedoor news）を LSTM でカテゴリ分類する最小構成です。
+前処理済みデータ（Parquet）、fastText 単語ベクトル、設定 JSON を用いて学習・推論します。
+
+1. 環境
+
+Python 3.10–3.12（Windows で確認）
+
+主要ライブラリ
+
+torch（CPU 版でOK / GPU も可）
+
+pandas, pyarrow, tqdm
+
+（必要に応じて）datasets 2.14.6（旧前処理スクリプト互換用）
+
+インストール例（CPU 版）
+pip install torch==2.3.0+cpu torchvision==0.18.0+cpu torchaudio==2.3.0+cpu --index-url https://download.pytorch.org/whl/cpu
+pip install pandas pyarrow tqdm
+
+
+GPU を使う場合は、CUDA の版に合わせて
+--index-url https://download.pytorch.org/whl/cu121（CUDA 12系）などを選択。
+
+2. データの用意（livedoor news → Parquet）
+A) 既に用意済みの Parquet を使う場合
+src/data/1_0_no_cv_preprocessed/
+  ├─ train.parquet   (列: content, category)
+  ├─ val.parquet
+  └─ test.parquet
+
+
+この構成があれば、そのまま学習へ進めます。
+
+B) Livedoor コーパスから自分で作る場合
+
+ldcc-20140209 をダウンロード＆展開
+フォルダ直下に dokujo-tsushin/, topic-news/ などの 9カテゴリ が並んでいる状態にする。
+
+付属ツールで Parquet へ変換（Windows PowerShell 例）
+
+pip install pandas pyarrow
+python tools\ldcc_to_parquet.py --src "C:\path\to\ldcc-20140209" --out "src\data\1_0_no_cv_preprocessed"
+
+3. 単語ベクトル（fastText）
+
+README の指示どおり、同じ単語ベクトルを LSTM/Transformer で共通利用します。
+推奨：Hugging Face facebook/fasttext-ja-vectors（model.bin）から .vec を用意するか、fastText 公式の cc.ja.300.vec を取得します。
+
+取得方法（どちらか）
+
+公式 .vec を直接：cc.ja.300.vec(.gz) をダウンロードして解凍
+
+.bin→.vec 変換：
+
+pip install fasttext-wheel
+python -m fasttext print-word-vectors "C:\data\embeddings\model.bin" > "C:\data\embeddings\cc.ja.300.vec"
+
+
+生成された .vec のパスを設定ファイルに指定します。
+
+4. 設定ファイル
+
+src/configs/2_2/lstm_config.json（例）：
+
+{
+  "paths": {
+    "data_dir": "./src/data/1_0_no_cv_preprocessed",
+    "save_dir": "./src/result/2_2_lstm_single"
+  },
+  "model": {
+    "fasttext_vec_path": "data/embeddings/cc.ja.300.vec",
+    "emb_dim": 300,
+    "hidden": 256,
+    "num_layers": 1,
+    "bidirectional": true,
+    "dropout": 0.3,
+    "freeze_emb": false,
+    "max_features": 120000
+  },
+  "train": {
+    "random_seed": 42,
+    "epochs": 20,
+    "batch_size": 128,
+    "lr": 1e-3,
+    "weight_decay": 1e-4,
+    "patience": 4,
+    "max_len": 256
+  }
+}
+
+
+epochs: 最大エポック数（例: 20）
+
+patience: 検証精度が連続で改善しない回数の上限（早期終了）
+
+fasttext_vec_path: .vec への実パスに必ず変更
+
+5. 学習
+python -m src.p2_2_lstm_train --config .\src\configs\2_2\lstm_config.json
+
+生成物
+
+src/result/2_2_lstm_single/<timestamp>/ に一式が保存されます。
+
+models/
+  ├─ model.pt                # モデル（互換state_dictも保存）
+  ├─ vocab.json              # 語彙
+  └─ label2id.json
+used_config.json
+train_result_summary.csv     # train/val/test の指標
+train_cost_summary.csv       # 実行時間など
+
+6. 推論（コスト測定・バッチ通し）
+
+学習したディレクトリと評価したいデータ（content列を含む Parquet）を指定：
+
+python -m src.p2_2_lstm_infer --ts-dir ".\src\result\2_2_lstm_single\<timestamp>" --data ".\src\data\1_0_no_cv_preprocessed\test.parquet" --batch-size 256
+
+
+inference_<timestamp>/ に実行コストが保存されます。
+
+7. 典型スコア（Livedoor, LSTM）
+
+train: acc ≈ 1.00（過学習しやすい）
+
+val/test: acc ≈ 0.62–0.68
+パラメータ（hidden, dropout, max_len, max_features）で変動。
+
+8. トラブルシュート
+
+FileNotFoundError: /content/fasttext-ja-300d.vec
+→ 設定 JSON の fasttext_vec_path が Colab 用のダミー。ローカルの .vec への正しいパスに直す。
+
+ModuleNotFoundError: torch
+→ pip install torch ... を実行（CPU/GPU 版どちらか）。
+
+WinError 1114（DLL 初期化失敗）
+→ PyTorch をアンインストール → CPU 版を再インストール（CUDA DLL 不整合の回避）。
+
+datasets 周りで失敗
+→ 本READMEの変換ツールで Parquet を直接作る（tools/ldcc_to_parquet.py）。
+旧スクリプトを使う場合は datasets==2.14.6 / pyarrow==12.0.1 へ固定。
+
+学習が遅い / メモリ不足
+→ max_len を短く、max_features を小さく、batch_size を下げる。GPU があれば GPU 版 PyTorch を推奨。
+
+9. 実験メモ（おすすめ設定）
+
+高速セット：max_len=192, max_features=50_000, batch_size=128
+
+安定化：freeze_emb=true（fastText を固定、上位層のみ学習）
+
+汎化：dropout=0.4、patience=6、num_layers=2（やり過ぎ注意）
+
+10. ライセンス・出典
+
+Livedoor News Corpus: 各配布元の規約に従う
+
+fastText vectors: facebook/fasttext-ja-vectors／cc.ja.300.vec
+
+本リポジトリのコード: 研究・教育目的での利用を想定
