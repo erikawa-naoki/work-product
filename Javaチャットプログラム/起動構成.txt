@@ -1,0 +1,3 @@
+起動構成
+
+--module-path=C:\Users\naoki\JFX¥javafx-sdk-17.0.10¥lib --add-modules javafx.controls
