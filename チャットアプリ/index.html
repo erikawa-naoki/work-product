@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>リアルタイムチャット</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="chat-app">
+    <header class="chat-header">
+      <div>
+        <h1>リアルタイムチャット</h1>
+        <p id="status" class="status status--connecting">サーバに接続中...</p>
+      </div>
+
+      <label class="name-field">
+        <span>表示名</span>
+        <input id="name" type="text" maxlength="20" placeholder="名前">
+      </label>
+    </header>
+
+    <section id="messages" class="messages" aria-live="polite">
+      <p id="empty-message" class="empty-message">
+        メッセージを送って会話を始めましょう
+      </p>
+    </section>
+
+    <section class="composer">
+      <div id="emoji-panel" class="emoji-panel" hidden>
+        <button type="button" class="emoji-choice">😀</button>
+        <button type="button" class="emoji-choice">😂</button>
+        <button type="button" class="emoji-choice">😊</button>
+        <button type="button" class="emoji-choice">👍</button>
+        <button type="button" class="emoji-choice">👏</button>
+        <button type="button" class="emoji-choice">🎉</button>
+        <button type="button" class="emoji-choice">❤️</button>
+        <button type="button" class="emoji-choice">🙇</button>
+      </div>
+
+      <form id="chat-form" class="chat-form">
+        <button
+          id="emoji-button"
+          class="icon-button"
+          type="button"
+          aria-label="絵文字を選ぶ"
+          aria-expanded="false"
+        >☺</button>
+
+        <input
+          id="message"
+          type="text"
+          maxlength="300"
+          autocomplete="off"
+          placeholder="メッセージを入力"
+          aria-label="メッセージ"
+        >
+
+        <button id="send-button" class="send-button" type="submit">
+          送信
+        </button>
+      </form>
+
+      <div class="share-row">
+        <button id="copy-url-button" class="copy-button" type="button">
+          URLをコピー
+        </button>
+        <span id="copy-result" class="copy-result" aria-live="polite"></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="client.js"></script>
+</body>
+</html>

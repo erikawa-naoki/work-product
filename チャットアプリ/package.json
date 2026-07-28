@@ -1,0 +1,12 @@
+{
+  "name": "websocket-chat-live-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VS Code Live ServerとWebSocketを用いたリアルタイムチャット",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "websocket": "^1.0.35"
+  }
+}
